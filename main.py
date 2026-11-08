@@ -31,17 +31,20 @@ logging.basicConfig(
 )
 logger = logging.getLogger("punkshit_photobooth")
 
+# Mengambil variabel Environment dari Railway
 TOKEN = os.getenv("TELEGRAM_PHOTOBOOTH_BOT_TOKEN")
 if not TOKEN:
     logger.warning("TELEGRAM_PHOTOBOOTH_BOT_TOKEN belum diset di Environment Variable!")
 
-CHANNEL_ID = os.getenv("TELEGRAM_CHANNEL_ID", "@CCPunkshitRP")
+CHANNEL_ID = os.getenv("TELEGRAM_CHANNEL_ID")
+if not CHANNEL_ID:
+    logger.warning("TELEGRAM_CHANNEL_ID belum diset di Environment Variable!")
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_DIR = os.getenv("RAILWAY_VOLUME_MOUNT_PATH", BASE_DIR)
 DB_NAME = os.path.join(DB_DIR, "punkshit_photobooth.db")
 
-# Nama file stiker di GitHub
+# Nama file stiker di repository
 STICKER_FILENAME = "sticker_punkshit.webp"
 
 # Konfigurasi 3 Frame
@@ -187,7 +190,7 @@ def process_photobooth_image(user_bytes: bytes, frame_num: int, filter_type: str
 def main_menu_keyboard():
     return InlineKeyboardMarkup([
         [InlineKeyboardButton("📸 Ambil Foto", callback_data="pb_select_frame")],
-        [InlineKeyboardButton("🖼️ Galeri Foto", callback_data="pb_gallery"), InlineKeyboardButton("ℹ️ Informasi Staff", callback_data="pb_info")]
+        [InlineKeyboardButton("🖼️ Galeri Foto", callback_data="pb_gallery"), InlineKeyboardButton("ℹ️ Informasi", callback_data="pb_info")]
     ])
 
 def frame_selection_keyboard():
@@ -195,7 +198,7 @@ def frame_selection_keyboard():
         [InlineKeyboardButton("Frame 1 - Classic Doodle", callback_data="pb_frame_1")],
         [InlineKeyboardButton("Frame 2 - Minimalist Red", callback_data="pb_frame_2")],
         [InlineKeyboardButton("Frame 3 - Halftone Crew", callback_data="pb_frame_3")],
-        [InlineKeyboardButton("◀️ Kembali ke Menu", callback_data="pb_main")]
+        [InlineKeyboardButton("◀️ Kembali", callback_data="pb_main")]
     ])
 
 def filter_selection_keyboard():
@@ -229,7 +232,7 @@ def message_preset_keyboard():
     ])
 
 def btn_back():
-    return InlineKeyboardMarkup([[InlineKeyboardButton("◀️ Kembali ke Menu Utama", callback_data="pb_main")]])
+    return InlineKeyboardMarkup([[InlineKeyboardButton("◀️ Kembali", callback_data="pb_main")]])
 
 # ==========================================
 # HANDLERS & ROUTER
@@ -237,10 +240,9 @@ def btn_back():
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data.clear()
     text = (
-        "<b>STAFF PHOTOBOOTH — CC PUNKSHIT</b>\n"
-        "──────────────────────────────\n"
-        "Selamat datang! Saya staf photobooth yang bertugas melayani dokumentasi foto Anda.\n\n"
-        "Silakan pilih menu di bawah ini untuk memulai:"
+        "<b>SELF PHOTOBOOTH — CC PUNKSHIT</b>\n\n"
+        "Selamat datang! Abadikan foto fotbar kamu dengan frame edisi spesial CC PUNKSHIT.\n\n"
+        "Silakan pilih menu di bawah untuk memulai:"
     )
 
     if update.callback_query:
@@ -275,9 +277,8 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     elif data == "pb_select_frame":
         text = (
-            "<b>PILIHAN FRAME PHOTOBOOTH</b>\n"
-            "──────────────────────────────\n"
-            "Silakan pilih desain frame yang ingin diterapkan pada foto Anda:"
+            "<b>PILIHAN FRAME</b>\n\n"
+            "Pilih desain frame yang ingin kamu gunakan:"
         )
         if query.message.photo:
             await query.message.delete()
@@ -296,9 +297,8 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
         preview_path = os.path.join(BASE_DIR, frame_info["preview"])
 
         caption = (
-            f"<b>Pratinjau: {frame_name}</b>\n"
-            "──────────────────────────────\n"
-            "Silakan kirimkan foto Anda ke chat ini sekarang."
+            f"<b>Pratinjau: {frame_name}</b>\n\n"
+            "Kirim foto kamu ke chat ini sekarang:"
         )
 
         keyboard = InlineKeyboardMarkup([
@@ -327,9 +327,8 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
         }
         
         text = (
-            f"<b>Filter Terpilih:</b> {filter_names.get(filter_type, 'Normal')}\n"
-            "──────────────────────────────\n"
-            "Pilih ucapan instan di bawah ini atau buat pesan custom:"
+            f"<b>Filter Terpilih:</b> {filter_names.get(filter_type, 'Normal')}\n\n"
+            "Pilih ucapan instan di bawah atau ketik pesan custom:"
         )
         await query.edit_message_text(text, reply_markup=message_preset_keyboard(), parse_mode="HTML")
 
@@ -339,9 +338,8 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if msg_key == "custom":
             context.user_data['state'] = "WAITING_CUSTOM_MESSAGE"
             await query.edit_message_text(
-                "<b>Ketik Pesan Custom</b>\n"
-                "──────────────────────────────\n"
-                "Silakan ketikkan pesan ucapan Anda di kolom chat:",
+                "<b>Ketik Pesan Custom</b>\n\n"
+                "Ketik pesan ucapan kamu di bawah ini:",
                 reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("❌ Batal", callback_data="pb_main")]]),
                 parse_mode="HTML"
             )
@@ -359,24 +357,24 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 rows = await cursor.fetchall()
 
         if not rows:
-            gal_text = "<i>Belum ada dokumentasi foto di galeri event.</i>"
+            gal_text = "<i>Belum ada foto di galeri event.</i>"
         else:
             gal_text = ""
             for uname, fr, fl, msg in rows:
                 fname = FRAME_CONFIG.get(fr, {}).get("name", "Frame 1")
                 gal_text += f"• <b>@{uname}</b> ({fname} | {fl.upper()})\n  💬 <i>\"{msg}\"</i>\n\n"
 
-        text = f"<b>GALERI PHOTOBOOTH EVENT CC PUNKSHIT</b>\n\n{gal_text}"
+        text = f"<b>GALERI PHOTOBOOTH CC PUNKSHIT</b>\n\n{gal_text}"
         await query.edit_message_text(text, reply_markup=btn_back(), parse_mode="HTML")
 
     elif data == "pb_info":
+        ch_display = CHANNEL_ID if CHANNEL_ID else "channel event"
         text = (
-            "<b>INFORMASI LAYANAN PHOTOBOOTH</b>\n"
-            "──────────────────────────────\n"
-            "1. Tentukan pilihan frame yang diinginkan.\n"
-            "2. Unggah foto Anda bersama kawan-kawan.\n"
-            "3. Pilih efek filter dan pesan ucapan.\n"
-            "4. Foto ber-frame akan otomatis terbit di channel <b>@CCPunkshitRP</b>."
+            "<b>INFORMASI PHOTOBOOTH</b>\n\n"
+            "1. Pilih frame favoritmu\n"
+            "2. Unggah foto fotbar kamu\n"
+            "3. Pilih efek filter & pesan ucapan\n"
+            f"4. Foto otomatis terbit di channel <b>{ch_display}</b>"
         )
         await query.edit_message_text(text, reply_markup=btn_back(), parse_mode="HTML")
 
@@ -393,9 +391,8 @@ async def handle_photo_upload(update: Update, context: ContextTypes.DEFAULT_TYPE
 
     text = (
         "<b>Foto Berhasil Diterima</b>\n"
-        f"Frame: <b>{frame_name}</b>\n"
-        "──────────────────────────────\n"
-        "Silakan pilih efek filter visual yang ingin digunakan:"
+        f"Frame: <b>{frame_name}</b>\n\n"
+        "Pilih filter visual yang ingin digunakan:"
     )
     await update.message.reply_text(text, reply_markup=filter_selection_keyboard(), parse_mode="HTML")
 
@@ -416,6 +413,9 @@ async def execute_photobooth_pipeline(update: Update, context: ContextTypes.DEFA
     photo_file_id = context.user_data.get('photo_file_id')
     now = int(time.time())
 
+    # Ambil username bot secara dinamis dari API Telegram
+    bot_username = f"@{context.bot.username}" if context.bot.username else ""
+
     chat_id = update.effective_chat.id
     await context.bot.send_chat_action(chat_id=chat_id, action="upload_photo")
 
@@ -425,11 +425,12 @@ async def execute_photobooth_pipeline(update: Update, context: ContextTypes.DEFA
         
         framed_image_stream = process_photobooth_image(photo_bytes, frame_num, filter_type, username)
 
-        # Caption ringkas + ajakan ramaikan di channel
+        # Format caption 2 baris (Teks ajakan di baris bawah)
+        ajakan = f"Yuk cobain di {bot_username}" if bot_username else "Yuk cobain juga!"
         if text_message and text_message != "-":
-            caption_text = f"Sent by @{username}: \"{text_message}\" — Yuk abadikan fotbar kamu juga di Photobooth CC PUNKSHIT!"
+            caption_text = f"Sent by @{username}: {text_message}\n{ajakan}"
         else:
-            caption_text = f"Sent by @{username} — Yuk abadikan fotbar kamu juga di Photobooth CC PUNKSHIT!"
+            caption_text = f"Sent by @{username}\n{ajakan}"
 
         ch_msg_id = None
         if CHANNEL_ID:
@@ -448,17 +449,19 @@ async def execute_photobooth_pipeline(update: Update, context: ContextTypes.DEFA
         # Balas foto ber-frame ke user chat
         framed_image_stream.seek(0)
         target_msg = update.callback_query.message if update.callback_query else update.message
+        
+        ch_display = CHANNEL_ID if CHANNEL_ID else "channel"
         await target_msg.reply_photo(
             photo=framed_image_stream,
             caption=(
                 "<b>Foto Berhasil Diproses</b>\n\n"
-                f"Hasil foto ber-frame Anda telah terbit di channel <b>{CHANNEL_ID}</b>."
+                f"Hasil foto ber-frame kamu sudah terbit di channel <b>{ch_display}</b>."
             ),
             reply_markup=btn_back(),
             parse_mode="HTML"
         )
 
-        # Auto-send stiker punkshit jika file tersedia di GitHub/Base Dir
+        # Auto-send stiker punkshit jika file tersedia di repository
         sticker_path = os.path.join(BASE_DIR, STICKER_FILENAME)
         if os.path.exists(sticker_path):
             try:
