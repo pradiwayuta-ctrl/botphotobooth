@@ -23,7 +23,7 @@ from telegram.ext import (
 )
 
 # ==========================================
-# LOGGING & KONFIGURASI BOT CC PUNKSHIT
+# LOGGING & KONFIGURASI BOT
 # ==========================================
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -41,31 +41,31 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_DIR = os.getenv("RAILWAY_VOLUME_MOUNT_PATH", BASE_DIR)
 DB_NAME = os.path.join(DB_DIR, "punkshit_photobooth.db")
 
-# Konfigurasi 3 Frame berdasarkan desain gambar
+# Konfigurasi 3 Frame
 FRAME_CONFIG = {
     1: {
-        "name": "⚡ Frame 1: Punkshit Doodle & Guitar",
+        "name": "Frame 1",
         "file": "frame1.png",
-        "preview": "preview_frame1.jpg"
+        "preview": "preview_frame1.png"
     },
     2: {
-        "name": "🏁 Frame 2: Punkshit Minimalist 2026",
+        "name": "Frame 2",
         "file": "frame2.png",
-        "preview": "preview_frame2.jpg"
+        "preview": "preview_frame2.png"
     },
     3: {
-        "name": "☠️ Frame 3: Punkshit Halftone Crew",
+        "name": "Frame 3",
         "file": "frame3.png",
-        "preview": "preview_frame3.jpg"
+        "preview": "preview_frame3.png"
     }
 }
 
-# Opsi Preset Ucapan Instan (Button)
+# Preset Ucapan Instan
 PRESET_MESSAGES = {
-    "msg_p1": "Stay Punk & Solid! ⚡",
-    "msg_p2": "Punk's Not Dead! ☠️",
-    "msg_p3": "Huru-Hara CC Punkshit! 🎸",
-    "msg_p4": "Oi! Oi! Oi! 🔥"
+    "msg_p1": "CC Punkshit 2026",
+    "msg_p2": "Punk's Not Dead",
+    "msg_p3": "Fotbar CC Punkshit",
+    "msg_p4": "Oi! Oi!"
 }
 
 # ==========================================
@@ -110,13 +110,13 @@ def apply_image_filter(img: Image.Image, filter_type: str) -> Image.Image:
     if filter_type == "bw":
         gray = ImageOps.grayscale(img).convert("RGBA")
         enhancer = ImageEnhance.Contrast(gray)
-        return enhancer.enhance(1.7)
+        return enhancer.enhance(1.6)
     
     elif filter_type == "red_acid":
         gray = ImageOps.grayscale(img)
         red_tint = ImageOps.colorize(gray, black="#050505", white="#ff2222").convert("RGBA")
         enhancer = ImageEnhance.Contrast(red_tint)
-        return enhancer.enhance(1.4)
+        return enhancer.enhance(1.3)
     
     elif filter_type == "vintage":
         rgb_img = img.convert("RGB") if img.mode != "RGB" else img
@@ -130,24 +130,24 @@ def apply_image_filter(img: Image.Image, filter_type: str) -> Image.Image:
     return img
 
 def draw_watermark(img: Image.Image, username: str) -> Image.Image:
-    """Menempelkan Watermark Username & Event Tag di Pojok Foto."""
+    """Menempelkan Watermark Username & Tanggal di Bawah Foto."""
     w, h = img.size
     overlay = Image.new("RGBA", img.size, (0, 0, 0, 0))
     ov_draw = ImageDraw.Draw(overlay)
     
-    banner_height = max(28, int(h * 0.035))
-    ov_draw.rectangle([0, h - banner_height, w, h], fill=(10, 10, 10, 190))
+    banner_height = max(24, int(h * 0.03))
+    ov_draw.rectangle([0, h - banner_height, w, h], fill=(0, 0, 0, 180))
     img = Image.alpha_composite(img, overlay)
     
     draw = ImageDraw.Draw(img)
-    wm_text = f"📷 @{username}  •  CC PUNKSHIT EVENT  •  {datetime.now().strftime('%Y-%m-%d')}"
+    wm_text = f"@{username}  •  CC PUNKSHIT  •  {datetime.now().strftime('%d/%m/%Y')}"
     
     try:
         font = ImageFont.truetype("arial.ttf", int(banner_height * 0.45))
     except Exception:
         font = ImageFont.load_default()
         
-    draw.text((int(w * 0.02), h - int(banner_height * 0.75)), wm_text, fill=(255, 255, 255, 230), font=font)
+    draw.text((int(w * 0.02), h - int(banner_height * 0.75)), wm_text, fill=(255, 255, 255, 220), font=font)
     return img
 
 def process_photobooth_image(user_bytes: bytes, frame_num: int, filter_type: str, username: str) -> io.BytesIO:
@@ -165,10 +165,10 @@ def process_photobooth_image(user_bytes: bytes, frame_num: int, filter_type: str
         combined = Image.alpha_composite(user_img_resized, frame_img)
     else:
         w, h = user_img.size
-        border = max(24, int(min(w, h) * 0.04))
+        border = max(20, int(min(w, h) * 0.03))
         colors = {1: (20, 20, 20, 255), 2: (235, 230, 225, 255), 3: (160, 20, 20, 255)}
         bg_color = colors.get(frame_num, (20, 20, 20, 255))
-        combined = Image.new("RGBA", (w + (border * 2), h + (border * 2) + 60), bg_color)
+        combined = Image.new("RGBA", (w + (border * 2), h + (border * 2) + 50), bg_color)
         combined.paste(user_img, (border, border), user_img if user_img.mode == 'RGBA' else None)
 
     combined = draw_watermark(combined, username)
@@ -183,27 +183,27 @@ def process_photobooth_image(user_bytes: bytes, frame_num: int, filter_type: str
 # ==========================================
 def main_menu_keyboard():
     return InlineKeyboardMarkup([
-        [InlineKeyboardButton("📸 Ambil Foto (Pilih Frame)", callback_data="pb_select_frame")],
-        [InlineKeyboardButton("🖼️ Wall of Fame / Galeri", callback_data="pb_gallery"), InlineKeyboardButton("📜 Info Staff", callback_data="pb_info")]
+        [InlineKeyboardButton("📸 Ambil Foto", callback_data="pb_select_frame")],
+        [InlineKeyboardButton("🖼️ Galeri", callback_data="pb_gallery"), InlineKeyboardButton("ℹ️ Info", callback_data="pb_info")]
     ])
 
 def frame_selection_keyboard():
     return InlineKeyboardMarkup([
-        [InlineKeyboardButton("⚡ Frame 1: Punkshit Doodle & Guitar", callback_data="pb_frame_1")],
-        [InlineKeyboardButton("🏁 Frame 2: Punkshit Minimalist 2026", callback_data="pb_frame_2")],
-        [InlineKeyboardButton("☠️ Frame 3: Punkshit Halftone Crew", callback_data="pb_frame_3")],
-        [InlineKeyboardButton("◀️ Kembali ke Menu Utama", callback_data="pb_main")]
+        [InlineKeyboardButton("Frame 1", callback_data="pb_frame_1")],
+        [InlineKeyboardButton("Frame 2", callback_data="pb_frame_2")],
+        [InlineKeyboardButton("Frame 3", callback_data="pb_frame_3")],
+        [InlineKeyboardButton("◀️ Kembali", callback_data="pb_main")]
     ])
 
 def filter_selection_keyboard():
     return InlineKeyboardMarkup([
         [
-            InlineKeyboardButton("📷 Normal / Asli", callback_data="pb_filter_normal"),
-            InlineKeyboardButton("⬛ B&W Grunge", callback_data="pb_filter_bw")
+            InlineKeyboardButton("Normal", callback_data="pb_filter_normal"),
+            InlineKeyboardButton("Hitam Putih", callback_data="pb_filter_bw")
         ],
         [
-            InlineKeyboardButton("🔴 Red Acid", callback_data="pb_filter_red_acid"),
-            InlineKeyboardButton("📼 Vintage Sepia", callback_data="pb_filter_vintage")
+            InlineKeyboardButton("Red Acid", callback_data="pb_filter_red_acid"),
+            InlineKeyboardButton("Vintage", callback_data="pb_filter_vintage")
         ],
         [InlineKeyboardButton("❌ Batal", callback_data="pb_main")]
     ])
@@ -211,22 +211,22 @@ def filter_selection_keyboard():
 def message_preset_keyboard():
     return InlineKeyboardMarkup([
         [
-            InlineKeyboardButton("⚡ Stay Punk & Solid!", callback_data="pb_msg_p1"),
-            InlineKeyboardButton("☠️ Punk's Not Dead!", callback_data="pb_msg_p2")
+            InlineKeyboardButton("CC Punkshit 2026", callback_data="pb_msg_p1"),
+            InlineKeyboardButton("Punk's Not Dead", callback_data="pb_msg_p2")
         ],
         [
-            InlineKeyboardButton("🎸 Huru-Hara Punkshit!", callback_data="pb_msg_p3"),
-            InlineKeyboardButton("🔥 Oi! Oi! Oi!", callback_data="pb_msg_p4")
+            InlineKeyboardButton("Fotbar CC Punkshit", callback_data="pb_msg_p3"),
+            InlineKeyboardButton("Oi! Oi!", callback_data="pb_msg_p4")
         ],
         [
-            InlineKeyboardButton("✏️ Ketik Pesan Custom", callback_data="pb_msg_custom"),
+            InlineKeyboardButton("✏️ Pesan Custom", callback_data="pb_msg_custom"),
             InlineKeyboardButton("➡️ Tanpa Pesan", callback_data="pb_msg_none")
         ],
-        [InlineKeyboardButton("❌ Batal / Reset", callback_data="pb_main")]
+        [InlineKeyboardButton("❌ Batal", callback_data="pb_main")]
     ])
 
 def btn_back():
-    return InlineKeyboardMarkup([[InlineKeyboardButton("◀️ Kembali ke Menu Utama", callback_data="pb_main")]])
+    return InlineKeyboardMarkup([[InlineKeyboardButton("◀️ Kembali", callback_data="pb_main")]])
 
 # ==========================================
 # HANDLERS & ROUTER
@@ -234,16 +234,9 @@ def btn_back():
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data.clear()
     text = (
-        "⚡ <b>PHOTOBOOTH SERVICE — CC PUNKSHIT</b> ⚡\n"
-        "──────────────────────────────\n"
-        "<i>\"Kamera & Frame Siap — Zero Typing, Serba Klik!\"</i>\n\n"
-        "Selamat datang! Staf Photobooth siap bantu cetak foto fotbar kamu.\n\n"
-        "<b>Fitur Utama:</b>\n"
-        "• <b>3 Pilihan Frame PNG</b> (Doodle, Minimalist, Halftone)\n"
-        "• <b>Efek Filter:</b> Normal, B&W Grunge, Red Acid & Vintage\n"
-        "• <b>Watermark Otomatis:</b> Tag @username + Tanggal Event\n"
-        "• Auto-Broadcast ke <b>@CCPunkshitRP</b>\n\n"
-        "Silakan tekan tombol di bawah:"
+        "<b>PHOTOBOOTH CC PUNKSHIT</b>\n\n"
+        "Selamat datang di Photobooth Event CC Punkshit.\n"
+        "Pilih menu di bawah untuk mulai foto:"
     )
 
     if update.callback_query:
@@ -260,11 +253,7 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await start(update, context)
 
     elif data == "pb_select_frame":
-        text = (
-            "🖼️ <b>PILIH DESIGN FRAME PHOTOBOOTH</b>\n"
-            "──────────────────────────────\n"
-            "Pilih salah satu dari 3 desain frame PNG khusus CC Punkshit:"
-        )
+        text = "Pilih frame yang mau dipakai:"
         if query.message.photo:
             await query.message.delete()
             await context.bot.send_message(chat_id=query.message.chat_id, text=text, reply_markup=frame_selection_keyboard(), parse_mode="HTML")
@@ -282,10 +271,8 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
         preview_path = os.path.join(BASE_DIR, frame_info["preview"])
 
         caption = (
-            f"🖼️ <b>PREVIEW: {frame_name}</b>\n"
-            "──────────────────────────────\n"
-            "📷 <b>LANGKAH 1 DARI 3:</b>\n"
-            "Upload <b>FOTO FOTBAR</b> kamu ke chat ini sekarang!"
+            f"<b>Preview: {frame_name}</b>\n\n"
+            "Kirim foto kamu sekarang:"
         )
 
         keyboard = InlineKeyboardMarkup([
@@ -307,17 +294,15 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
         context.user_data['state'] = "WAITING_MESSAGE_SELECTION"
 
         filter_names = {
-            "normal": "📷 Normal / Asli",
-            "bw": "⬛ B&W Grunge",
-            "red_acid": "🔴 Red Acid",
-            "vintage": "📼 Vintage Sepia"
+            "normal": "Normal",
+            "bw": "Hitam Putih",
+            "red_acid": "Red Acid",
+            "vintage": "Vintage"
         }
         
         text = (
-            f"✅ <b>Filter Terpilih:</b> {filter_names.get(filter_type, 'Normal')}\n"
-            "──────────────────────────────\n"
-            "💬 <b>LANGKAH 3 DARI 3 — PILIH UCAPAN:</b>\n"
-            "Klik ucapan instan di bawah ATAU ketik ucapan custom sendiri:"
+            f"<b>Filter:</b> {filter_names.get(filter_type, 'Normal')}\n\n"
+            "Pilih pesan di bawah atau ketik pesan sendiri:"
         )
         await query.edit_message_text(text, reply_markup=message_preset_keyboard(), parse_mode="HTML")
 
@@ -327,17 +312,15 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if msg_key == "custom":
             context.user_data['state'] = "WAITING_CUSTOM_MESSAGE"
             await query.edit_message_text(
-                "✏️ <b>KETIK PESAN CUSTOM</b>\n"
-                "──────────────────────────────\n"
-                "Ketik pesan / quote tongkrongan kamu di kolom chat sekarang:",
+                "Ketik pesan kamu di kolom chat:",
                 reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("❌ Batal", callback_data="pb_main")]]),
                 parse_mode="HTML"
             )
         else:
             if msg_key == "none":
-                selected_text = "Salam Hangat dari Photobooth Event! ✨"
+                selected_text = "-"
             else:
-                selected_text = PRESET_MESSAGES.get(f"msg_{msg_key}", "Stay Punk! ⚡")
+                selected_text = PRESET_MESSAGES.get(f"msg_{msg_key}", "CC Punkshit 2026")
 
             await execute_photobooth_pipeline(update, context, text_message=selected_text)
 
@@ -347,25 +330,23 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 rows = await cursor.fetchall()
 
         if not rows:
-            gal_text = "<i>Belum ada foto yang terdaftar di galeri event.</i>"
+            gal_text = "<i>Belum ada foto di galeri.</i>"
         else:
             gal_text = ""
             for uname, fr, fl, msg in rows:
-                fname = FRAME_CONFIG.get(fr, {}).get("name", "Standard")
-                gal_text += f"• <b>@{uname}</b> [{fname} | {fl.upper()}]\n  💬 <i>\"{msg}\"</i>\n\n"
+                fname = FRAME_CONFIG.get(fr, {}).get("name", "Frame 1")
+                gal_text += f"• <b>@{uname}</b> ({fname} | {fl.upper()})\n  💬 <i>\"{msg}\"</i>\n\n"
 
-        text = f"🖼️ <b>WALL OF FAME / GALERI PHOTOBOOTH CC PUNKSHIT</b>\n\n{gal_text}"
+        text = f"<b>GALERI PHOTOBOOTH CC PUNKSHIT</b>\n\n{gal_text}"
         await query.edit_message_text(text, reply_markup=btn_back(), parse_mode="HTML")
 
     elif data == "pb_info":
         text = (
-            "📜 <b>PANDUAN STAFF PHOTOBOOTH</b>\n"
-            "──────────────────────────────\n"
-            "1. Klik <b>Ambil Foto</b> & tentukan pilihan frame.\n"
-            "2. Upload foto fotbar kamu.\n"
-            "3. Pilih <b>Filter Visual</b> (Normal, B&W, Red Acid, Vintage).\n"
-            "4. Pilih ucapan instan via tombol / ketik custom.\n"
-            "5. Foto + Watermark otomatis dikirim ke <b>@CCPunkshitRP</b>."
+            "<b>INFO PHOTOBOOTH</b>\n\n"
+            "1. Pilih frame\n"
+            "2. Kirim foto\n"
+            "3. Pilih filter & pesan\n"
+            "4. Foto otomatis terkirim ke channel @CCPunkshitRP"
         )
         await query.edit_message_text(text, reply_markup=btn_back(), parse_mode="HTML")
 
@@ -381,11 +362,9 @@ async def handle_photo_upload(update: Update, context: ContextTypes.DEFAULT_TYPE
     frame_name = FRAME_CONFIG[frame_num]["name"]
 
     text = (
-        f"📸 <b>FOTO FOTBAR TERIMA!</b>\n"
-        f"🖼️ Frame Terpasang: <b>{frame_name}</b>\n"
-        "──────────────────────────────\n"
-        "🎨 <b>LANGKAH 2 DARI 3 — PILIH FILTER FOTO:</b>\n"
-        "Pilih salah satu efek visual warna untuk foto kamu:"
+        f"<b>Foto diterima!</b>\n"
+        f"Frame: {frame_name}\n\n"
+        "Pilih filter foto:"
     )
     await update.message.reply_text(text, reply_markup=filter_selection_keyboard(), parse_mode="HTML")
 
@@ -417,14 +396,11 @@ async def execute_photobooth_pipeline(update: Update, context: ContextTypes.DEFA
 
         frame_name = FRAME_CONFIG[frame_num]["name"]
         caption_text = (
-            "⚡ <b>PHOTOBOOTH CC PUNKSHIT SNAPSHOT</b> ⚡\n"
-            "──────────────────────────────\n"
-            f"👤 <b>Fotbar  :</b> @{username}\n"
-            f"🖼️ <b>Frame   :</b> {frame_name}\n"
-            f"🎨 <b>Filter  :</b> {filter_type.upper()}\n"
-            f"💬 <b>Pesan   :</b>\n<i>\"{text_message}\"</i>\n"
-            "──────────────────────────────\n"
-            "🏷️ <i>Watermarked & Published automatically</i>"
+            "<b>PHOTOBOOTH CC PUNKSHIT</b>\n\n"
+            f"👤 <b>User:</b> @{username}\n"
+            f"🖼️ <b>Frame:</b> {frame_name}\n"
+            f"🎨 <b>Filter:</b> {filter_type.upper()}\n"
+            f"💬 <b>Pesan:</b> {text_message}"
         )
 
         ch_msg_id = None
@@ -446,9 +422,8 @@ async def execute_photobooth_pipeline(update: Update, context: ContextTypes.DEFA
         await target_msg.reply_photo(
             photo=framed_image_stream,
             caption=(
-                "✅ <b>FOTO BERHASIL DICETAK & DIPOS!</b>\n\n"
-                f"Foto fotbar kamu dengan filter <b>{filter_type.upper()}</b> & watermark "
-                f"berhasil dipublikasikan ke channel <b>{CHANNEL_ID}</b>."
+                "✅ <b>Foto berhasil dibuat!</b>\n\n"
+                f"Foto kamu sudah dikirim ke channel <b>{CHANNEL_ID}</b>."
             ),
             reply_markup=btn_back(),
             parse_mode="HTML"
@@ -464,7 +439,7 @@ async def execute_photobooth_pipeline(update: Update, context: ContextTypes.DEFA
     except Exception as e:
         logger.error(f"Error photobooth pipeline: {e}")
         target_msg = update.callback_query.message if update.callback_query else update.message
-        await target_msg.reply_text("⚠️ <b>Ada kendala teknis saat memproses foto.</b> Silakan coba lagi.", reply_markup=btn_back(), parse_mode="HTML")
+        await target_msg.reply_text("⚠️ Terjadi kendala saat memproses foto. Silakan coba lagi.", reply_markup=btn_back(), parse_mode="HTML")
     finally:
         context.user_data.clear()
 
@@ -481,7 +456,7 @@ def main():
     app.add_handler(MessageHandler(filters.PHOTO, handle_photo_upload))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text_message))
 
-    print("⚡ Bot Photobooth (Filter + Watermark + Zero Typing) Running...")
+    print("⚡ Bot Photobooth Running...")
     app.run_polling()
 
 if __name__ == "__main__":
