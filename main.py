@@ -45,7 +45,7 @@ DB_DIR = os.getenv("RAILWAY_VOLUME_MOUNT_PATH", BASE_DIR)
 DB_NAME = os.path.join(DB_DIR, "punkshit_photobooth.db")
 
 # Nama file stiker di repository
-STICKER_FILENAME = "sticker_punkshit.webp"
+STICKER_FILENAME = "sticker_punkshit.webm"
 
 # Konfigurasi 3 Frame
 FRAME_CONFIG = {
