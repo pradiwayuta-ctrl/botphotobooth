@@ -31,7 +31,6 @@ logging.basicConfig(
 )
 logger = logging.getLogger("punkshit_photobooth")
 
-# Mengambil variabel Environment dari Railway
 TOKEN = os.getenv("TELEGRAM_PHOTOBOOTH_BOT_TOKEN")
 if not TOKEN:
     logger.warning("TELEGRAM_PHOTOBOOTH_BOT_TOKEN belum diset di Environment Variable!")
@@ -44,7 +43,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_DIR = os.getenv("RAILWAY_VOLUME_MOUNT_PATH", BASE_DIR)
 DB_NAME = os.path.join(DB_DIR, "punkshit_photobooth.db")
 
-# Nama file stiker di repository
+# Nama file stiker di repository (Format .webm)
 STICKER_FILENAME = "sticker_punkshit.webm"
 
 # Konfigurasi 3 Frame
@@ -443,10 +442,20 @@ async def execute_photobooth_pipeline(update: Update, context: ContextTypes.DEFA
                     parse_mode="HTML"
                 )
                 ch_msg_id = ch_msg.message_id
+
+                # Kirim stiker LANGSUNG KE CHANNEL setelah foto dikirim
+                sticker_path = os.path.join(BASE_DIR, STICKER_FILENAME)
+                if os.path.exists(sticker_path):
+                    try:
+                        with open(sticker_path, 'rb') as st_file:
+                            await context.bot.send_sticker(chat_id=CHANNEL_ID, sticker=st_file)
+                    except Exception as st_err:
+                        logger.error(f"Gagal mengirim stiker ke channel {CHANNEL_ID}: {st_err}")
+
             except Exception as e:
                 logger.error(f"Gagal broadcast ke channel {CHANNEL_ID}: {e}")
 
-        # Balas foto ber-frame ke user chat
+        # Balas foto ber-frame ke user chat (tanpa stiker)
         framed_image_stream.seek(0)
         target_msg = update.callback_query.message if update.callback_query else update.message
         
@@ -460,15 +469,6 @@ async def execute_photobooth_pipeline(update: Update, context: ContextTypes.DEFA
             reply_markup=btn_back(),
             parse_mode="HTML"
         )
-
-        # Auto-send stiker punkshit jika file tersedia di repository
-        sticker_path = os.path.join(BASE_DIR, STICKER_FILENAME)
-        if os.path.exists(sticker_path):
-            try:
-                with open(sticker_path, 'rb') as st_file:
-                    await context.bot.send_sticker(chat_id=chat_id, sticker=st_file)
-            except Exception as st_err:
-                logger.error(f"Gagal mengirim stiker: {st_err}")
 
         async with get_db_connection() as db:
             await db.execute(
